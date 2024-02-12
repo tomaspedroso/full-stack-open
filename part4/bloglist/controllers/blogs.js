@@ -48,22 +48,28 @@ blogsRouter.delete('/:id', middleware.userExtractor, async (request, response) =
   }
 })
 
-blogsRouter.put('/:id', async (request, response) => {
+blogsRouter.put('/:id', middleware.userExtractor, async (request, response) => {
   const body = request.body
+  const user = request.user
+  const blog = await Blog.findById(request.params.id)
 
-  const blog = {
-    title: body.title,
-    author: body.author,
-    url: body.url,
-    likes: body.likes
+  if (!blog) {
+    response.status(404).json({ error: 'blog not found'})
   }
 
-  const updatedNote = await Blog.findByIdAndUpdate(request.params.id, blog, { new: true })
-
-  if (updatedNote) {
-    response.json(updatedNote)
+  if (blog.user.toString() === user._id.toString()) {
+    const updateBlog = {
+      title: body.title,
+      author: body.author,
+      url: body.url,
+      likes: body.likes,
+      user: body.user
+    }
+  
+    const updatedBlog = await Blog.findByIdAndUpdate(request.params.id, updateBlog, { new: true })
+    response.json(updatedBlog)
   } else {
-    response.status(404).end()
+    response.status(401).json({ error: 'invalid user'})
   }
 })
 
